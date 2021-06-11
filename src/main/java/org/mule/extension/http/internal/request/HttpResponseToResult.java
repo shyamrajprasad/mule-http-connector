@@ -40,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -54,8 +55,9 @@ public class HttpResponseToResult {
 
   private static final String BINARY_CONTENT_TYPE = BINARY.toRfcString();
   private static boolean STRICT_CONTENT_TYPE = parseBoolean(getProperty(SYSTEM_PROPERTY_PREFIX + "strictContentType"));
+  private static final String BOUNDARY_PARAM = "boundary";
 
-  private final Function<String, MediaType> parseMediaType = memoize(ctv -> parseMediaType(ctv), new ConcurrentHashMap<>());
+  private static final ConcurrentMap<String, MediaType> parsedMediaTypes = new ConcurrentHashMap<>();
 
   Result<Object, HttpResponseAttributes> convert(HttpRequesterCookieConfig config, MuleContext muleContext,
                                                  HttpResponse response, HttpEntity entity,
@@ -114,7 +116,11 @@ public class HttpResponseToResult {
   private MediaType getMediaType(final String contentTypeValue, Charset defaultCharset) {
     MediaType mediaType;
     if (contentTypeValue != null) {
-      mediaType = parseMediaType.apply(contentTypeValue);
+      mediaType = parsedMediaTypes.containsKey(contentTypeValue) ? parsedMediaTypes.get(contentTypeValue)
+          : parseMediaType(contentTypeValue);
+      if (mediaType.getParameter(BOUNDARY_PARAM) == null) {
+        parsedMediaTypes.putIfAbsent(contentTypeValue, mediaType);
+      }
     } else {
       mediaType = MediaType.ANY;
     }
