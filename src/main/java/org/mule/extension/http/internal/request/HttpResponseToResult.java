@@ -116,10 +116,9 @@ public class HttpResponseToResult {
   private MediaType getMediaType(final String contentTypeValue, Charset defaultCharset) {
     MediaType mediaType;
     if (contentTypeValue != null) {
-      mediaType = parsedMediaTypes.containsKey(contentTypeValue) ? parsedMediaTypes.get(contentTypeValue)
-          : parseMediaType(contentTypeValue);
-      if (mediaType.getParameter(BOUNDARY_PARAM) == null) {
-        parsedMediaTypes.putIfAbsent(contentTypeValue, mediaType);
+      mediaType = parsedMediaTypes.computeIfAbsent(contentTypeValue, this::parseAndRemoveTypeWithBoundary);
+      if (mediaType == null) {
+        mediaType = parseMediaType(contentTypeValue);
       }
     } else {
       mediaType = MediaType.ANY;
@@ -145,6 +144,11 @@ public class HttpResponseToResult {
         return MediaType.ANY;
       }
     }
+  }
+
+  private MediaType parseAndRemoveTypeWithBoundary(final String contentTypeValue) {
+    MediaType mediaType = parseMediaType(contentTypeValue);
+    return mediaType.getParameter(BOUNDARY_PARAM) == null ? mediaType : null;
   }
 
   public static void refreshSystemProperties() {
