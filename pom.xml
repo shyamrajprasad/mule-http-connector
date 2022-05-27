@@ -49,7 +49,7 @@
 
         <scriptingModuleVersion>1.1.7</scriptingModuleVersion>
 
-        <springVersion>5.3.18</springVersion>
+        <springVersion>5.3.20</springVersion>
     </properties>
 
     <build>
